@@ -20,7 +20,7 @@ def get_classifier(args):
 
 def get_feature_extractor(args):
     if args.feature_extractor == 'hog':
-        return HOG(cell_size=args.feature_extractor_cell_size, cells_per_block=args.feature_extractor_cells_per_block)
+        return HOG(pixels_per_cell=args.feature_extractor_cell_size, cells_per_block=args.feature_extractor_cells_per_block)
 
 
 def get_accuracy(preds, labels, verbose=False):
