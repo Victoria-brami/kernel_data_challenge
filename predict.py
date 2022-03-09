@@ -12,10 +12,14 @@ from utils import get_classifier, get_feature_extractor, get_accuracy
 def parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--modelname', default='svm')
+    parser.add_argument('--datapath', type=str, default='data/')
     parser.add_argument('--kernel', default='rbf')
     parser.add_argument('--sigma', type=float, default=1)
+    parser.add_argument('--degree', type=int, default=5)
+    parser.add_argument('--c', type=float, default=1)
     parser.add_argument('--feature_extractor', default='hog')
-    parser.add_argument('--feature_extractor_cell_size', default=16)
+    parser.add_argument('--feature_extractor_cell_size', default=8)
+    parser.add_argument('--feature_extractor_cells_per_block', default=3)
     parser.add_argument('--output_file', default='Yte_pred.csv')
     return parser.parse_args()
 
@@ -23,7 +27,7 @@ def parser():
 def predict(args):
 
     # get data
-    data = Data()
+    data = Data(repository=args.datapath)
     Xtr = data.Xtr
     Ytr = data.Ytr
     Xte = data.Xte
