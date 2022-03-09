@@ -21,3 +21,12 @@ class RBF:
         ## Matrix of shape NxM
         return np.exp(-(XX[:, None] + YY[None, :] - 2 * np.dot(X, Y.T)) / (2 * self.sigma ** 2))
 
+class Polynomial:
+    """ Implements the Polynomial Kernel """
+    def __init__(self, degree):
+        self.degree = degree
+
+    def kernel(self, X, Y):
+        return (X @ Y.T)**self.degree
+
+

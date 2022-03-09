@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import argparse
 from load import Data
-from utils import get_classifier, get_feature_extractor
+from utils import get_classifier, get_feature_extractor, get_accuracy
 
 # Xtr = np.array(pd.read_csv('Xtr.csv',header=None,sep=',',usecols=range(3072)))
 # Xte = np.array(pd.read_csv('Xte.csv',header=None,sep=',',usecols=range(3072)))
@@ -12,7 +12,10 @@ from utils import get_classifier, get_feature_extractor
 def parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--modelname', default='svm')
+    parser.add_argument('--kernel', default='rbf')
+    parser.add_argument('--sigma', type=float, default=1)
     parser.add_argument('--feature_extractor', default='hog')
+    parser.add_argument('--feature_extractor_cell_size', default=16)
     parser.add_argument('--output_file', default='Yte_pred.csv')
     return parser.parse_args()
 
@@ -25,20 +28,28 @@ def predict(args):
     Ytr = data.Ytr
     Xte = data.Xte
 
+    Xtr_im = data.Xtr_im
+    Xte_im = data.Xte_im
+
     # get the feature extractor
     if args.feature_extractor is not None:
-        feature_extractor = get_feature_extractor(args.feature_extractor)
-        train_features = feature_extractor.compute(Xtr)
-        test_features = feature_extractor.compute(Xtr)
+        feature_extractor = get_feature_extractor(args)
+        train_features = feature_extractor._compute_features(Xtr_im)
+        test_features = feature_extractor._compute_features(Xte_im)
     else:
         train_features = Xtr
         test_features = Xte
 
     # Get the classifier
-    classifier = get_classifier(args.modelname)
-    classifier.fit(Xtr, Ytr.reshape(-1))
-    Yte = classifier.predict(Xte)
+    classifier = get_classifier(args)
 
+    # Train the classifier
+    classifier.fit(train_features, Ytr.reshape(-1))
+    Y_train_preds = classifier.predict(train_features)
+    accuracy = get_accuracy(Y_train_preds, Ytr, verbose=True)
+
+    # make the predictions
+    Yte = classifier.predict(test_features)
     Yte = {'Prediction': Yte}
     dataframe = pd.DataFrame(Yte)
     dataframe.index += 1
@@ -47,11 +58,8 @@ def predict(args):
 
 
 
-# define your learning algorithm here
-# for instance, define an object called ``classifier''
-# classifier.train(Ytr,Xtr)
-
-
-# predict on the test data
-# for instance, Yte = classifier.fit(Xte)
+if __name__ == '__main__':
+    args = parser()
+    print(args)
+    predict(args)
 

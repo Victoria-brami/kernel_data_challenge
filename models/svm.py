@@ -2,10 +2,13 @@ import numpy as np
 from scipy import optimize
 from scipy.linalg import cho_factor, cho_solve
 from kernels import *
+from load import Data
+import copy
+from feature_extractor.hog import HOG
 
 class KernelSVC:
 
-    def __init__(self, C, kernel, epsilon = 1e-3):
+    def __init__(self,  kernel, C = 100., epsilon = 1e-3):
         self.type = 'non-linear'
         self.C = C
         self.kernel = kernel
@@ -85,3 +88,140 @@ class KernelSVC:
         """ Predict y values in {-1, 1} """
         d = self.separating_function(X)
         return 2 * ( d + self. b> 0) - 1
+
+
+class MultipleClassSVM:
+
+    def __init__(self,  kernel, C, epsilon=1e-3, type='ova', num_classes=10):
+        self.num_classes = num_classes
+        self.type = 'non-linear'
+        self.C = C
+        self.kernel = kernel
+        self.alpha = None
+        self.support = None
+        self.epsilon = epsilon
+        self.norm_f = None
+        self.f_weights = None
+        self.classifier_type = type
+        self.init_binary_svms()
+
+    def init_binary_svms(self):
+
+        # One class versus all : num_classes SVMs
+        if self.classifier_type == 'ova':
+            self.binary_classifiers = [KernelSVC(kernel=self.kernel, C=self.C) for i in range(self.num_classes)]
+
+        # One class versus another : num_classes * (num_classes - 1) / 2 SVMs
+        else:
+            self.binary_classifiers = []
+            for i in range(self.num_classes):
+                classifiers_i = []
+                for j in range(i + 1, self.num_classes):
+                    binary_svm_ij = KernelSVC(kernel=self.kernel, C=self.C)
+                    classifiers_i.append(binary_svm_ij)
+                self.binary_classifiers.append(classifiers_i)
+
+
+
+    def fit(self, X, y):
+
+        # One class versus all
+        if self.classifier_type == 'ova':
+            y_c = copy.deepcopy(y)
+            for i in range(self.num_classes):
+                print(" Fitting for class {}".format(i))
+                # Change the labels to binary labels
+                bin_y = [2*(label==i) - 1 for label in y_c]
+                # Get line separator for each classifier
+                self.binary_classifiers[i].fit(X, bin_y)
+        else:
+            # One class versus another
+            y_c = copy.deepcopy(y)
+            for i in range(self.num_classes):
+                for j in range(i+1, self.num_classes):
+                    print(" Fitting class {} Versus class {}".format(i, j))
+                    X_c = X[np.where((y==i) | (y==j))]
+                    y_c = y[np.where((y==i) | (y==j))]
+                    y_c[np.where(y_c==i)] = 1
+                    y_c[np.where(y_c==j)] = -1
+                    self.binary_classifiers[i, j-(i+1)].fit(X_c, y_c)
+
+    def separating_function(self, X):
+        if self.classifier_type == 'ova':
+            n_samples = X.shape[0]
+            predictions = np.zeros((self.num_classes, n_samples))
+            for i in range(self.num_classes):
+                predictions[i, :] = self.kernel(X, self.binary_classifiers[i].support) @ self.binary_classifiers[i].f_weights + self.binary_classifiers[i].b
+        else:
+            predictions = np.zeros((self.num_classes, self.num_classes))
+            for i in range(self.num_classes):
+                for j in range(i+1, self.num_classes):
+                    predictions[i, j] = self.kernel(X, self.binary_classifiers[i, j-(i+1)].support) @ self.binary_classifiers[i, j-(i+1)].f_weights
+                    predictions[i, j-(i+1)] +=  self.binary_classifiers[i, j-(i+1)].b
+        return predictions
+
+
+    def predict(self, X):
+        preds = self.separating_function(X)
+        if self.classifier_type == 'ova':
+            print(preds)
+            return np.argmax(preds, axis=0)
+        else:
+            reshape_preds = copy.deepcopy(preds)
+            reshape_preds[preds<0] = -1
+            reshape_preds[preds>0] = 1
+
+
+
+
+if __name__ == '__main__':
+    data = Data()
+    Xtr = data.Xtr[:100]
+    Ytr = data.Ytr[:100]
+    Xte = data.Xte[:10]
+
+    hog = HOG(pixels_per_cell=4, cells_per_block=3, orientations=9)
+    #Xtr = hog._compute_grey_features(data.grey_Xtr_im[:100])
+
+    sigma=1.
+    print(Ytr.shape)
+    kernel = RBF(sigma).kernel
+    # kernel = Linear().kernel
+    #kernel = Polynomial(degree=5).kernel
+    C = 0.1
+    classifier =  MultipleClassSVM(kernel=kernel, C=C, num_classes=4)
+    #classifier.fit(Xtr, Ytr.reshape(-1))
+    #Yte = classifier.predict(Xtr)
+    #print("Accuracy train: ", np.mean(Yte==Ytr))
+
+    import matplotlib.pyplot as plt
+
+    colors = ["blue", "red", "green", "orange"]
+
+
+    class_1 = np.random.multivariate_normal([0, 0], 2*np.eye(2), 100)
+    class_2 = np.random.multivariate_normal([-4, 3], 3/2 * np.eye(2), 100)
+    class_3 = np.random.multivariate_normal([3, -2], 2 * np.eye(2), 100)
+    class_4 = np.random.multivariate_normal([2, 4],  np.eye(2), 100)
+    Y = np.zeros(400)
+    Y[100:200] = 1
+    Y[200:300] = 2
+    Y[300:400] = 3
+    X = np.concatenate((class_1, class_2, class_3, class_4))
+    rd_perm = np.random.permutation(400)
+    X = X[rd_perm]
+    Y = Y[rd_perm]
+
+    plt.figure()
+    plt.scatter(X[:, 0], X[:, 1], c=[colors[int(i)] for i in Y])
+    plt.title("Training set")
+
+
+    classifier.fit(X, Y)
+    Yte = classifier.predict(X)
+    print("Accuracy train: ", np.mean(Yte==Y))
+
+    plt.figure()
+    plt.scatter(X[:, 0], X[:, 1], c=[colors[int(i)] for i in Yte])
+    plt.title("Predictions")
+    plt.show()
