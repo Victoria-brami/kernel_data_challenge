@@ -35,11 +35,14 @@ def predict(args):
     Xtr_im = data.Xtr_im
     Xte_im = data.Xte_im
 
+    Xtr_im = data.grey_Xtr_im
+    Xte_im = data.grey_Xte_im
+
     # get the feature extractor
     if args.feature_extractor is not None:
         feature_extractor = get_feature_extractor(args)
-        train_features = feature_extractor._compute_features(Xtr_im)
-        test_features = feature_extractor._compute_features(Xte_im)
+        train_features = feature_extractor._compute_grey_features(Xtr_im)
+        test_features = feature_extractor._compute_grey_features(Xte_im)
     else:
         train_features = Xtr
         test_features = Xte
