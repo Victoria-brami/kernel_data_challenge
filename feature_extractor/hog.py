@@ -79,6 +79,7 @@ class HOG(FeatureExtractor):
 
         g_x, g_y = self.compute_gradients(image)
         magnitude = self.compute_magnitude(g_x, g_y)
+        print("magnitude shape", magnitude.shape)
         direction = self.compute_direction(g_x, g_y)
         hist = np.zeros((3, self.nb_cell_cols, self.nb_cell_rows, self.nb_bins))
 
@@ -102,8 +103,8 @@ class HOG(FeatureExtractor):
                     c = c_0
 
                     while c < self.W:
-                        cell_magnitude = magnitude[channel, l+range_rows_start:l+range_rows_stop, c+range_columns_start:c+range_columns_stop]
-                        cell_direction =  direction[channel, l+range_rows_start:l+range_rows_stop, c+range_columns_start:c+range_columns_stop]
+                        cell_magnitude = magnitude[channel, int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
+                        cell_direction =  direction[channel, int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
                         hist[channel, l_i, c_i, i] = self._compute_cell_hog(self, cell_magnitude, cell_direction, start_direction, end_direction)
 
                         c_i += 1
@@ -214,7 +215,9 @@ class HOG(FeatureExtractor):
 if __name__ == '__main__':
 
     data = Data()
-    Xte = data.grey_Xte_im
+    Xte = data.Xte_im
     Xtr = data.grey_Xtr_im
 
     hogb = HOG(pixels_per_cell=8)
+
+    hogb.compute_hog_features(Xte[0])
