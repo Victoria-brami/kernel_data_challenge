@@ -60,18 +60,6 @@ class HOG(FeatureExtractor):
         return magnitude
 
 
-    def _compute_cell_hog(self, cell_magnitude, cell_direction, direction_inf, direction_sup):
-        """" A CORRIGER """
-        tot_hog = 0.
-        for channel in range(3):
-            for cell_i in range(self.cell_size):
-                for cell_j in range(self.cell_size):
-                    if (cell_direction[channel, cell_i, cell_j] >= direction_inf) or (cell_direction[channel, cell_i, cell_j] < direction_sup):
-                        continue
-                    tot_hog += cell_magnitude[channel, cell_i, cell_j]
-        return tot_hog / (self.cell_size * self.cell_size)
-
-
     def compute_hog_features(self, image):
 
         l_0 = self.cell_size / 2
@@ -79,41 +67,44 @@ class HOG(FeatureExtractor):
 
         g_x, g_y = self.compute_gradients(image)
         magnitude = self.compute_magnitude(g_x, g_y)
-        print("magnitude shape", magnitude.shape)
         direction = self.compute_direction(g_x, g_y)
-        hist = np.zeros((3, self.nb_cell_cols, self.nb_cell_rows, self.nb_bins))
+
+        # Extract the channels where the gradient magnitude is the highest
+        idcs_max = magnitude.argmax(axis=0)
+        rows, cols = np.meshgrid(np.arange(magnitude.shape[1]), np.arange(magnitude.shape[2]), indexing = 'ij', sparse = True)
+
+        magnitude = magnitude[idcs_max, rows, cols]
+        direction = direction[idcs_max, rows, cols]
+        hist = np.zeros((self.nb_cell_cols, self.nb_cell_rows, self.nb_bins))
 
         range_rows_stop = (self.cell_size + 1) / 2
         range_rows_start = -(self.cell_size / 2)
         range_columns_stop = (self.cell_size + 1) / 2
         range_columns_start = -(self.cell_size / 2)
 
-        for channel in range(3):
-            for i in range(self.nb_bins):
-                # Bounds of orientations
-                start_direction = (i+1) * 180./self.nb_bins
-                end_direction = i * 180./self.nb_bins
-                l = l_0
-                c = c_0
-                l_i = 0
+        for i in range(self.nb_bins):
+            # Bounds of orientations
+            start_direction = (i+1) * 180./self.nb_bins
+            end_direction = i * 180./self.nb_bins
+            l = l_0
+            c = c_0
+            l_i = 0
+            c_i = 0
+
+            while l < self.H:
                 c_i = 0
+                c = c_0
 
-                while l < self.H:
-                    c_i = 0
-                    c = c_0
+                while c < self.W:
+                    cell_magnitude = magnitude[int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
+                    cell_direction =  direction[int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
+                    hist[l_i, c_i, i] = self._compute_cell_grey_hog(cell_magnitude, cell_direction, start_direction, end_direction)
 
-                    while c < self.W:
-                        cell_magnitude = magnitude[channel, int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
-                        cell_direction =  direction[channel, int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
-                        hist[channel, l_i, c_i, i] = self._compute_cell_hog(self, cell_magnitude, cell_direction, start_direction, end_direction)
-
-                        c_i += 1
-                        c += self.cell_size
-                    l_i += 1
-                    l += self.cell_size
-
-        hog_features = np.reshape(hist, -1)
-        return hog_features
+                    c_i += 1
+                    c += self.cell_size
+                l_i += 1
+                l += self.cell_size
+        return hist
 
 
     def _compute_features(self, X):
@@ -121,7 +112,20 @@ class HOG(FeatureExtractor):
         for i in range(NB_IMAGES):
             sys.stdout.write("\r Computing feature .... [{} / {}]".format(i, NB_IMAGES))
             image = X[i]
-            self.features.append(self.compute_hog_features(image))
+            hog_feature = self.compute_hog_features(image)
+            normalized_hog_feature = self._normalize_grey_descriptors(hog_feature)
+            self.features.append(normalized_hog_feature)
+        return np.array(self.features)
+
+
+    def _compute_grey_features(self, X):
+        NB_IMAGES = X.shape[0]
+        for i in range(NB_IMAGES):
+            sys.stdout.write("\r Computing feature .... [{} / {}]".format(i, NB_IMAGES))
+            image = X[i]
+            hog_feature = self.compute_hog_grey_features(image)
+            normalized_hog_feature = self._normalize_descriptors(hog_feature)
+            self.features.append(normalized_hog_feature)
         return np.array(self.features)
 
 
@@ -180,7 +184,7 @@ class HOG(FeatureExtractor):
         return hist
 
     """ TO MODIFY (TAKEN FROM SKIMAGE) """
-    def _normalize_descriptors(self, image_histogram):
+    def _normalize_grey_descriptors(self, image_histogram):
 
         n_blocks_row = (self.H // self.cell_size - self.cells_per_block) + 1
         n_blocks_col = (self.W // self.cell_size - self.cells_per_block) + 1
@@ -200,7 +204,7 @@ class HOG(FeatureExtractor):
             sys.stdout.write("\r Computing feature .... [{} / {}]".format(i, NB_IMAGES))
             image = X[i]
             hog_feature = self.compute_hog_grey_features(image)
-            normalized_hog_feature = self._normalize_descriptors(hog_feature)
+            normalized_hog_feature = self._normalize_grey_descriptors(hog_feature)
             self.features.append(normalized_hog_feature)
         return np.array(self.features)
 
@@ -216,8 +220,5 @@ if __name__ == '__main__':
 
     data = Data()
     Xte = data.Xte_im
-    Xtr = data.grey_Xtr_im
-
     hogb = HOG(pixels_per_cell=8)
-
-    hogb.compute_hog_features(Xte[0])
+    feats = hogb._compute_features(Xte)
