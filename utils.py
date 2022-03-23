@@ -4,19 +4,19 @@ from kernels import *
 
 def get_kernel(args):
     if args.kernel == 'rbf':
-        return RBF(sigma=args.sigma).kernel
+        return GaussianKernel(sigma=args.sigma)
     elif args.kernel == 'poly':
-        return Polynomial(degree=args.degree).kernel
+        return PolynomialKernel(degree=args.degree)
     elif args.kernel == 'linear':
-        return Linear().kernel
+        return LinearKernel()
 
 
 def get_classifier(args):
     if args.modelname == 'svm':
         kernel = get_kernel(args)
-        return MultipleClassSVM(kernel=kernel, C=args.c)
+        return MultipleClassSVM(kernel=kernel, C=args.c, type=args.classifier_type)
     kernel = get_kernel(args)
-    return MultipleClassSVM(kernel=kernel, C=args.c)
+    return MultipleClassSVM(kernel=kernel, C=args.c, type=args.classifier_type)
 
 def get_feature_extractor(args):
     if args.feature_extractor == 'hog':
