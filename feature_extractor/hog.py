@@ -35,19 +35,6 @@ class HOG(FeatureExtractor):
         g_y[:, 1:-1, :] = image[:, 2:, :] - image[:, :-2, :]
         return g_x, g_y
 
-    def compute_grey_gradients(self, image):
-        g_x = np.zeros((self.H, self.W))
-        g_y = np.zeros((self.H, self.W))
-        # On the edges of the image
-        g_x[:, 0] = 0
-        g_x[:, -1] = 0
-        g_y[0, :] = 0
-        g_y[-1, :] = 0
-        # Inside the image
-        g_x[:, 1:-1] = image[:, 2:] - image[:, :-2]
-        g_y[1:-1, :] = image[2:, :] - image[:-2, :]
-        return g_x, g_y
-
 
     def compute_direction(self, gradients_x, gradients_y, eps=1e-6):
         theta = np.arctan2(gradients_y , gradients_x)
@@ -118,17 +105,6 @@ class HOG(FeatureExtractor):
         return np.array(self.features)
 
 
-    def _compute_grey_features(self, X):
-        NB_IMAGES = X.shape[0]
-        for i in range(NB_IMAGES):
-            sys.stdout.write("\r Computing feature .... [{} / {}]".format(i, NB_IMAGES))
-            image = X[i]
-            hog_feature = self.compute_hog_grey_features(image)
-            normalized_hog_feature = self._normalize_descriptors(hog_feature)
-            self.features.append(normalized_hog_feature)
-        return np.array(self.features)
-
-
     def _compute_cell_grey_hog(self, cell_magnitude, cell_direction, direction_inf, direction_sup):
         """" A CORRIGER """
         tot_hog = 0.
@@ -139,49 +115,6 @@ class HOG(FeatureExtractor):
                 tot_hog += cell_magnitude[cell_i, cell_j]
         return tot_hog / (self.cell_size * self.cell_size)
 
-
-    def compute_hog_grey_features(self, image):
-
-        l_0 = self.cell_size / 2
-        c_0 = self.cell_size / 2
-
-        g_x, g_y = self.compute_grey_gradients(image)
-        magnitude = self.compute_magnitude(g_x, g_y)
-        direction = self.compute_direction(g_x, g_y)
-        hist = np.zeros((self.nb_cell_cols, self.nb_cell_rows, self.nb_bins))
-
-        range_rows_stop = (self.cell_size + 1) / 2
-        range_rows_start = -(self.cell_size / 2)
-        range_columns_stop = (self.cell_size + 1) / 2
-        range_columns_start = -(self.cell_size / 2)
-
-        for i in range(self.nb_bins):
-            # Bounds of orientations
-            start_direction = (i+1) * 180./self.nb_bins
-            end_direction = i * 180./self.nb_bins
-            l = l_0
-            c = c_0
-            l_i = 0
-            c_i = 0
-
-            while l < self.H:
-                c_i = 0
-                c = c_0
-
-                while c < self.W:
-                    range_rows_start = int(range_rows_start)
-                    range_rows_stop = int(range_rows_stop)
-                    range_columns_start = int(range_columns_start)
-                    range_columns_stop = int(range_columns_stop)
-                    cell_magnitude = magnitude[int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
-                    cell_direction =  direction[int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
-                    hist[l_i, c_i, i] = self._compute_cell_grey_hog(cell_magnitude, cell_direction, start_direction, end_direction)
-
-                    c_i += 1
-                    c += self.cell_size
-                l_i += 1
-                l += self.cell_size
-        return hist
 
     """ TO MODIFY (TAKEN FROM SKIMAGE) """
     def _normalize_grey_descriptors(self, image_histogram):
@@ -198,15 +131,6 @@ class HOG(FeatureExtractor):
 
         return normalized_blocks.reshape(-1)
 
-    def _compute_grey_features(self, X):
-        NB_IMAGES = X.shape[0]
-        for i in range(NB_IMAGES):
-            sys.stdout.write("\r Computing feature .... [{} / {}]".format(i, NB_IMAGES))
-            image = X[i]
-            hog_feature = self.compute_hog_grey_features(image)
-            normalized_hog_feature = self._normalize_grey_descriptors(hog_feature)
-            self.features.append(normalized_hog_feature)
-        return np.array(self.features)
 
     def _normalize_block(self, block, eps=1e-6):
         res = block / np.sqrt(np.sum(block ** 2) + eps ** 2)

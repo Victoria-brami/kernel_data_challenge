@@ -26,20 +26,15 @@ class Data:
         assert self.Xte.shape[1] == self.dim * self.dim * 3
         
         self.imreshape()
-        self.compute_grey_im()
 
     def imreshape(self):
         self.Xtr_im = np.reshape(self.Xtr, (self.Ntr, 3, self.dim, -1))
         self.Xte_im = np.reshape(self.Xte, (self.Nte, 3, self.dim, -1))
 
-
-    def compute_grey_im(self):
-        self.grey_Xtr_im = 0.2989 * self.Xtr_im[:, 0, :, :] + 0.5870 * self.Xtr_im[:, 1, :, :] + 0.1140 * self.Xtr_im[:, 2, :, :]
-        self.grey_Xte_im = 0.2989 * self.Xte_im[:, 0, :, :] + 0.5870 * self.Xte_im[:, 1, :, :] + 0.1140 * self.Xte_im[:, 2, :, :]
-
     def plot_images(self):
-        plt.imshow(np.transpose(self.Xtr_im[5], (1, 2, 0)))
-        plt.show()
+        for i in range(len(self.Xtr_im)):
+            plt.imsave("visualization/img_{i}.png", 
+                       np.transpose(self.Xtr_im[i], (1, 2, 0)))
 
 if __name__ == "__main__":
     data = Data()
