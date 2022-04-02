@@ -26,6 +26,10 @@ def parser():
 
 def predict(args):
 
+    cupy.cuda.set_allocator(None)
+    dev0 = cupy.cuda.Device(0)
+    dev0.use()
+
     data = Data(repository=args.datapath)
     Xtr = data.Xtr
     Ytr = data.Ytr
