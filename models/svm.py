@@ -26,7 +26,7 @@ class SVM:
 
     def fit(self, X, y):
         start_time = time.time()
-        with dev0:
+        with self.dev0:
             self.X_train = X
             self.n_train_samples = X.shape[0]
             print("Computing the kernel...")
@@ -90,13 +90,14 @@ class MultipleClassSVM:
         self.classifier_type = type
         self.cross_val_folds = cross_val_folds
         self.init_binary_svms()
+        self.dev0 = dev0
 
     def init_binary_svms(self):
         # One class versus all : num_classes SVMs
         if self.classifier_type == 'ova':
             self.binary_classifiers = []
             for i in range(self.num_classes):
-                    self.binary_classifiers.append(SVM(kernel=self.kernel, C=self.C))
+                    self.binary_classifiers.append(SVM(kernel=self.kernel, C=self.C, dev0=self.dev0))
 
         # One class versus another : num_classes * (num_classes - 1) / 2 SVMs
         elif self.classifier_type == 'ovo':
@@ -132,7 +133,7 @@ class MultipleClassSVM:
                     self.binary_classifiers[i][j - (i + 1)].fit(X_c, y_c)
 
     def separating_function(self, X):
-        with dev0:
+        with self.dev0:
             if self.classifier_type == 'ova':
                 n_samples = X.shape[0]
                 predictions = cupy.zeros((self.num_classes, n_samples))
