@@ -60,7 +60,7 @@ class SVM:
             self.support_vectors = self.X_train[self.support_vectors_indices]
 
             print("Optimization took {:.2f} secs.".format(time.time() - start_time))
-            print("Found {} / {} support vectors".format(len(self.support_vectors), len(self.n_train_samples)))
+            print("Found {} / {} support vectors".format(len(self.support_vectors), self.n_train_samples))
 
             return self.alphas
 
