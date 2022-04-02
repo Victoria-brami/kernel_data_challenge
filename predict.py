@@ -43,6 +43,9 @@ def predict(args, dev0=None):
     else:
         train_features = Xtr
         test_features = Xte
+        
+    train_features = cupy.array(train_features)
+    test_features = cupy.array(test_features)
 
     # Get the classifier
     classifier = get_classifier(args, dev0)
