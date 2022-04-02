@@ -50,6 +50,7 @@ def predict(args):
 
         elif args.feature_extractor=='hog_color':
             train_feature_extractor = get_feature_extractor(args)
+            print("test", type(train_feature_extractor))
             train_features = train_feature_extractor._compute_features(Xtr_im)
             test_feature_extractor = get_feature_extractor(args)
             test_features = test_feature_extractor._compute_features(Xte_im)
