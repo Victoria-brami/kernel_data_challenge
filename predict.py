@@ -58,7 +58,7 @@ def predict(args, dev0=None):
     print("Accuracy on train :", accuracy)
 
     # make the predictions
-    Yte = classifier.predict(test_features)
+    Yte, _ = classifier.predict(test_features)
     Yte = {'Prediction': Yte.get()}
     dataframe = pd.DataFrame(Yte)
     dataframe.index += 1
