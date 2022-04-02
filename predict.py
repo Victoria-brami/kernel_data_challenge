@@ -46,6 +46,7 @@ def predict(args, dev0=None):
         
     train_features = cupy.array(train_features)
     test_features = cupy.array(test_features)
+    Ytr = cupy.array(Ytr)
 
     # Get the classifier
     classifier = get_classifier(args, dev0)
