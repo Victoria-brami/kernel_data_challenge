@@ -38,7 +38,7 @@ class PolynomialKernel(Kernel):
 
 class GaussianKernel(Kernel):
 
-    def __init__(self, sigma=1, dev0=None):
+    def __init__(self, sigma=1, dev0=dev0):
         super().__init__()
         self.sigma = sigma
         self.dev0 = dev0
