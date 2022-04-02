@@ -24,7 +24,7 @@ def parser():
     return parser.parse_args()
 
 
-def predict(args):
+def predict(args, dev0=None):
 
     data = Data(repository=args.datapath)
     Xtr = data.Xtr
@@ -45,7 +45,7 @@ def predict(args):
         test_features = Xte
 
     # Get the classifier
-    classifier = get_classifier(args)
+    classifier = get_classifier(args, dev0)
 
     # Train the classifier
     classifier.fit(train_features, Ytr.reshape(-1))

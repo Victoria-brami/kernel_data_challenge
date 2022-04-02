@@ -81,7 +81,7 @@ class SVM:
 
 class MultipleClassSVM:
 
-    def __init__(self, kernel, C, epsilon=1e-3, type='ova', num_classes=10, cross_val_folds=5, dev0=dev0):
+    def __init__(self, kernel, C, epsilon=1e-3, type='ova', num_classes=10, cross_val_folds=5, dev0=None):
         self.num_classes = num_classes
         self.type = 'non-linear'
         self.C = C
