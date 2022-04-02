@@ -59,7 +59,7 @@ def predict(args, dev0=None):
 
     # make the predictions
     Yte = classifier.predict(test_features)
-    Yte = {'Prediction': Yte}
+    Yte = {'Prediction': Yte.get()}
     dataframe = pd.DataFrame(Yte)
     dataframe.index += 1
     dataframe.to_csv(args.output_file, index_label='Id')
