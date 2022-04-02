@@ -37,16 +37,9 @@ class Data:
         self.grey_Xtr_im = 0.2989 * self.Xtr_im[:, 0, :, :] + 0.5870 * self.Xtr_im[:, 1, :, :] + 0.1140 * self.Xtr_im[:, 2, :, :]
         self.grey_Xte_im = 0.2989 * self.Xte_im[:, 0, :, :] + 0.5870 * self.Xte_im[:, 1, :, :] + 0.1140 * self.Xte_im[:, 2, :, :]
 
-
-    def get_sift_features(self):
-        pass
-
     def plot_images(self):
         plt.imshow(np.transpose(self.Xtr_im[5], (1, 2, 0)))
         plt.show()
-        plt.imshow(self.grey_Xtr_im[5])
-        plt.show()
-
 
 if __name__ == "__main__":
     data = Data()

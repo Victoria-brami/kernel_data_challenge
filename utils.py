@@ -12,9 +12,6 @@ def get_kernel(args):
 
 
 def get_classifier(args):
-    if args.modelname == 'svm':
-        kernel = get_kernel(args)
-        return MultipleClassSVM(kernel=kernel, C=args.c, type=args.classifier_type)
     kernel = get_kernel(args)
     return MultipleClassSVM(kernel=kernel, C=args.c, type=args.classifier_type)
 

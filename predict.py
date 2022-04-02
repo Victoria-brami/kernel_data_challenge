@@ -4,6 +4,7 @@ import pandas as pd
 import argparse
 from load import Data
 from utils import get_classifier, get_feature_extractor, get_accuracy
+import sys
 
 cupy.cuda.set_allocator(None)
 
@@ -26,6 +27,7 @@ def parser():
 
 def predict(args):
 
+    print(sys.path[0])
     # get data
     data = Data(repository=args.datapath)
     Xtr = data.Xtr

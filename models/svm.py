@@ -48,7 +48,9 @@ class SVM:
             q = cvxopt.matrix(q.get())
             G = cvxopt.matrix(G.get())
             h = cvxopt.matrix(h.get())
-            res = cvxopt.solvers.qp(P=P, q=q, G=G, h=h)
+            A = cvxopt.matrix(1.0, (1, self.n_train_samples))
+            b = cvxopt.matrix(0.0)
+            res = cvxopt.solvers.qp(P=P, q=q, G=G, h=h, A=A, b=b)
             x = res.x
             self.alphas = cupy.squeeze(cupy.array(x))
 
