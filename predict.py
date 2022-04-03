@@ -55,7 +55,7 @@ def predict(args, dev0=None):
     # Train the classifier
     classifier.fit(train_features, Ytr.reshape(-1))
     Y_train_preds, pred_probas = classifier.predict(train_features)
-    assert get_accuracy(Ytr.get(), Ytr.get().ravel(), verbose=False) == 100
+    assert get_accuracy(Ytr.get().ravel(), Ytr.get().ravel(), verbose=False) == 100
     get_accuracy(Y_train_preds.get(), Ytr.get().ravel(), verbose=True)
     Ytrain = {'Prediction': Y_train_preds.get()}
     dataframe = pd.DataFrame(Ytrain)
