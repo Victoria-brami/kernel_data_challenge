@@ -56,7 +56,7 @@ def predict(args, dev0=None):
     classifier.fit(train_features, Ytr.reshape(-1))
     Y_train_preds, pred_probas = classifier.predict(train_features)
     get_accuracy(Y_train_preds, Ytr, verbose=True)
-    Ytrain = {'Prediction': Y_train_preds.get(), 'Labels': Ytr.get()}
+    Ytrain = {'Prediction': Y_train_preds.get()}
     dataframe = pd.DataFrame(Ytrain)
     dataframe.index += 1
     dataframe.to_csv(args.train_file, index_label='Id')
