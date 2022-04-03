@@ -20,7 +20,8 @@ def parser():
     parser.add_argument('--feature_extractor', default='hog', choices=[None, 'hog'])
     parser.add_argument('--feature_extractor_cell_size', default=8)
     parser.add_argument('--feature_extractor_cells_per_block', default=3)
-    parser.add_argument('--output_file', default='Yte_pred.csv')
+    parser.add_argument('--output_file', default='results/Yte_pred.csv')
+    parser.add_argument('--train_file', default='results/Ytrain_pred.csv')
     return parser.parse_args()
 
 
@@ -54,8 +55,11 @@ def predict(args, dev0=None):
     # Train the classifier
     classifier.fit(train_features, Ytr.reshape(-1))
     Y_train_preds, pred_probas = classifier.predict(train_features)
-    accuracy = get_accuracy(Y_train_preds, Ytr, verbose=True)
-    print("Accuracy on train :", accuracy)
+    get_accuracy(Y_train_preds, Ytr, verbose=True)
+    Ytrain = {'Prediction': Y_train_preds.get(), 'Labels': Ytr.get()}
+    dataframe = pd.DataFrame(Ytrain)
+    dataframe.index += 1
+    dataframe.to_csv(args.train_file, index_label='Id')
 
     # make the predictions
     Yte, _ = classifier.predict(test_features)
