@@ -20,6 +20,9 @@ def get_feature_extractor(args):
 
 
 def get_accuracy(preds, labels, verbose=False):
+    assert labels[0] == 8
+    print(preds[:10])
+    print(labels[:10])
     accuracy = np.mean(preds==labels)
     if verbose:
         print("Accuracy on the set: {:.3f} %".format(accuracy*100))
