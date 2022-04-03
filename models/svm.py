@@ -48,9 +48,9 @@ class SVM:
             q = cvxopt.matrix(q.get())
             G = cvxopt.matrix(G.get())
             h = cvxopt.matrix(h.get())
-            #A = cvxopt.matrix(1.0, (1, self.n_train_samples))
-            #b = cvxopt.matrix(0.0)
-            res = cvxopt.solvers.qp(P=P, q=q, G=G, h=h) #, A=A, b=b)
+            A = cvxopt.matrix(1.0, (1, self.n_train_samples))
+            b = cvxopt.matrix(0.0)
+            res = cvxopt.solvers.qp(P=P, q=q, G=G, h=h, A=A, b=b)
             x = res["x"]
             self.alphas = cupy.squeeze(cupy.array(x))
 
@@ -154,7 +154,6 @@ class MultipleClassSVM:
             if self.classifier_type == 'ova':
                 probas = cupy.exp(-(preds - cupy.min(preds, axis=0))) / cupy.sum(
                     cupy.exp(-(preds - cupy.min(preds, axis=0))), axis=0)
-                print(probas)
                 return cupy.argmax(preds, axis=0), probas
             else:
                 preds = self.separating_function(X)
