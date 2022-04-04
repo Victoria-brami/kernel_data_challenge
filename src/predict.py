@@ -1,11 +1,11 @@
-import numpy as np
+import sys
+sys.path.append("src/")
 import pandas as pd
 import argparse
 from load import Data
 from utils import get_classifier, get_feature_extractor, get_accuracy
-from sklearn import svm
 from copy import deepcopy
-
+import time
 
 def parser():
     parser = argparse.ArgumentParser()
@@ -21,11 +21,13 @@ def parser():
     parser.add_argument('--feature_extractor_cells_per_block', default=3)
     parser.add_argument('--output_file', default='results/Yte_pred.csv')
     parser.add_argument('--train_file', default='results/Ytrain_pred.csv')
+    parser.add_argument('--val_split', type=int, default=0)
     return parser.parse_args()
 
 
 def predict(args):
-
+    
+    start_time = time.time()
     data = Data(repository=args.datapath)
     Xtr = data.Xtr
     Ytr = data.Ytr
@@ -37,53 +39,47 @@ def predict(args):
     # get the feature extractor
     if args.feature_extractor != "None":
         train_feature_extractor = get_feature_extractor(args)
-        train_features = train_feature_extractor._compute_features(Xtr_im)
+        train_features = train_feature_extractor.compute_features(Xtr_im)
         test_feature_extractor = get_feature_extractor(args)
-        test_features = test_feature_extractor._compute_features(Xte_im)
+        test_features = test_feature_extractor.compute_features(Xte_im)
     else:
         train_features = Xtr
         test_features = Xte
         
-    # split for test
-    val_features = deepcopy(train_features[4000:])
-    train_features = deepcopy(train_features[:4000])
-    Yval = deepcopy(Ytr[4000:])
-    Ytr = deepcopy(Ytr[:4000])
-
-    # SKLEARN
-    #clf = svm.SVC(kernel='rbf', gamma=1.0, C=1.0, decision_function_shape='ovo')
-    #clf.fit(train_features, Ytr.reshape(-1))
-    #clf.decision_function_shape = "ovr"
-    #Y_train_preds = clf.predict(train_features)
+    # Validation split
+    if args.val_split == 1:
+        val_features = deepcopy(train_features[3000:])
+        train_features = deepcopy(train_features[1000:])
+        Yval = deepcopy(Ytr[:1000])
+        Ytr = deepcopy(Ytr[1000:])
 
     # Get the classifier
     classifier = get_classifier(args)
 
     # Train the classifier
     classifier.fit(train_features, Ytr.reshape(-1))
-    Y_train_preds, pred_probas = classifier.predict(train_features)
+    Y_train_preds = classifier.predict(train_features)
     assert get_accuracy(Ytr.ravel(), Ytr.ravel(), verbose=False) == 100
     get_accuracy(Y_train_preds, Ytr.ravel(), verbose=True)
-    Ytrain = {'Prediction': Y_train_preds}
-    dataframe = pd.DataFrame(Ytrain)
-    dataframe.index += 1
-    dataframe.to_csv(args.train_file, index_label='Id')
+    if args.train_file != "None":
+        Ytrain = {'Prediction': Y_train_preds}
+        dataframe = pd.DataFrame(Ytrain)
+        dataframe.index += 1
+        dataframe.to_csv(args.train_file, index_label='Id')
     
     # validation
-    Y_val_preds, _ = classifier.predict(val_features)
-    #Y_val_preds = clf.predict(val_features)
-    get_accuracy(Y_val_preds, Yval.ravel(), verbose=True)
+    if args.val_split == 1:
+        Y_val_preds = classifier.predict(val_features)
+        get_accuracy(Y_val_preds, Yval.ravel(), verbose=True)
 
     # make the predictions
-    Yte, _ = classifier.predict(test_features)
-    # Yte = clf.predict(test_features)
+    Yte = classifier.predict(test_features)
     Yte = {'Prediction': Yte}
     dataframe = pd.DataFrame(Yte)
     dataframe.index += 1
     dataframe.to_csv(args.output_file, index_label='Id')
-
-
-
+    
+    print("Total running time : {:.2f} secs.".format(time.time() - start_time))
 
 if __name__ == '__main__':
     args = parser()

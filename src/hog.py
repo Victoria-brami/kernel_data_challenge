@@ -1,17 +1,11 @@
 import numpy as np
 from load import Data
 import sys
+from copy import deepcopy
 
-
-class FeatureExtractor:
-
-    def _compute_features(self, X):
-        raise NotImplementedError()
-
-
-class HOG(FeatureExtractor):
-    """ Computes the historgam of Oriented Gradients"""
-    def __init__(self, pixels_per_cell=4, cells_per_block=3, orientations=9):
+class HOG:
+    """ Computes the histogram of Oriented Gradients"""
+    def __init__(self, pixels_per_cell=8, cells_per_block=3, orientations=9):
         super(HOG, self).__init__()
         self.cell_size = pixels_per_cell
         self.H = 32
@@ -21,6 +15,16 @@ class HOG(FeatureExtractor):
         self.nb_bins = orientations
         self.cells_per_block = cells_per_block
         self.features = []
+        
+    def compute_features(self, X):
+        NB_IMAGES = X.shape[0]
+        for i in range(NB_IMAGES):
+            sys.stdout.write("\r Computing feature .... [{} / {}]".format(i, NB_IMAGES))
+            image = X[i]
+            hog_feature = self.compute_hog_features(image)
+            normalized_hog_feature = self.normalize(hog_feature)
+            self.features.append(normalized_hog_feature)
+        return np.array(self.features)
 
     def compute_gradients(self, image):
         g_x = np.zeros((3, self.H, self.W))
@@ -35,7 +39,6 @@ class HOG(FeatureExtractor):
         g_y[:, 1:-1, :] = image[:, 2:, :] - image[:, :-2, :]
         return g_x, g_y
 
-
     def compute_direction(self, gradients_x, gradients_y, eps=1e-6):
         theta = np.arctan2(gradients_y , gradients_x)
         grad_direction = np.rad2deg(theta)
@@ -45,7 +48,6 @@ class HOG(FeatureExtractor):
     def compute_magnitude(self, g_x, g_y):
         magnitude = np.sqrt(g_x**2 + g_y**2)
         return magnitude
-
 
     def compute_hog_features(self, image):
 
@@ -85,7 +87,7 @@ class HOG(FeatureExtractor):
                 while c < self.W:
                     cell_magnitude = magnitude[int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
                     cell_direction =  direction[int(l+range_rows_start):int(l+range_rows_stop), int(c+range_columns_start):int(c+range_columns_stop)]
-                    hist[l_i, c_i, i] = self._compute_cell_grey_hog(cell_magnitude, cell_direction, start_direction, end_direction)
+                    hist[l_i, c_i, i] = self.compute_cell_grey_hog(cell_magnitude, cell_direction, start_direction, end_direction)
 
                     c_i += 1
                     c += self.cell_size
@@ -94,19 +96,7 @@ class HOG(FeatureExtractor):
         return hist
 
 
-    def _compute_features(self, X):
-        NB_IMAGES = X.shape[0]
-        for i in range(NB_IMAGES):
-            sys.stdout.write("\r Computing feature .... [{} / {}]".format(i, NB_IMAGES))
-            image = X[i]
-            hog_feature = self.compute_hog_features(image)
-            normalized_hog_feature = self._normalize_grey_descriptors(hog_feature)
-            self.features.append(normalized_hog_feature)
-        return np.array(self.features)
-
-
-    def _compute_cell_grey_hog(self, cell_magnitude, cell_direction, direction_inf, direction_sup):
-        """" A CORRIGER """
+    def compute_cell_grey_hog(self, cell_magnitude, cell_direction, direction_inf, direction_sup):
         tot_hog = 0.
         for cell_i in range(self.cell_size):
             for cell_j in range(self.cell_size):
@@ -115,29 +105,25 @@ class HOG(FeatureExtractor):
                 tot_hog += cell_magnitude[cell_i, cell_j]
         return tot_hog / (self.cell_size * self.cell_size)
 
-
-    """ TO MODIFY (TAKEN FROM SKIMAGE) """
-    def _normalize_grey_descriptors(self, image_histogram):
-
+    def normalize(self, image_histogram):
+        eps=1e-6
         n_blocks_row = (self.H // self.cell_size - self.cells_per_block) + 1
         n_blocks_col = (self.W // self.cell_size - self.cells_per_block) + 1
-        normalized_blocks = np.zeros(
-            (n_blocks_row, n_blocks_col, self.cells_per_block,self.cells_per_block, self.nb_bins)
-        )
+        normalized_blocks = np.zeros((n_blocks_row, 
+                                      n_blocks_col, 
+                                      self.cells_per_block,
+                                      self.cells_per_block, 
+                                      self.nb_bins))
         for r in range(n_blocks_row):
             for c in range(n_blocks_col):
-                block = image_histogram[r:r + self.cells_per_block, c:c + self.cells_per_block, :]
-                normalized_blocks[r, c, :] = self._normalize_block(block)
+                block = deepcopy(image_histogram[r:r + self.cells_per_block, 
+                                                 c:c + self.cells_per_block])
+                block = block / np.sqrt(np.sum(block ** 2) + eps ** 2)
+                block = np.minimum(block, 0.2)
+                block = block / np.sqrt(np.sum(block ** 2) + eps ** 2)
+                normalized_blocks[r, c] = block
 
-        return normalized_blocks.reshape(-1)
-
-
-    def _normalize_block(self, block, eps=1e-6):
-        res = block / np.sqrt(np.sum(block ** 2) + eps ** 2)
-        res = np.minimum(res, 0.2)
-        res = res / np.sqrt(np.sum(res ** 2) + eps ** 2)
-        return res
-
+        return normalized_blocks.ravel()
 
 
 if __name__ == '__main__':
@@ -145,4 +131,4 @@ if __name__ == '__main__':
     data = Data()
     Xte = data.Xte_im
     hogb = HOG(pixels_per_cell=8)
-    feats = hogb._compute_features(Xte)
+    feats = hogb.compute_features(Xte)

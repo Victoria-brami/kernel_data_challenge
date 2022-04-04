@@ -44,7 +44,6 @@ class SVM:
         support_preds = self.w.dot(self.kernel.kernel(self.margin_vectors, 
                                                       self.support_vectors))
         self.b = np.mean(y[boundary_idx] - support_preds)
-        print(self.b)
         print("Optimization took {:.2f} secs.".format(time.time() - start_time))
         print("Found {} / {} support vectors".format(len(self.support_vectors), 
                                                      self.n_train_samples))
@@ -85,7 +84,6 @@ class MultipleClassSVM:
 
 
     def fit(self, X, y):
-
         # One class versus all
         if self.classifier_type == 'ova':
             y_c = copy.deepcopy(y)
@@ -122,17 +120,14 @@ class MultipleClassSVM:
             predictions = np.zeros((n_samples, self.num_classes, self.num_classes))
             for i in range(self.num_classes):
                 for j in range(i + 1, self.num_classes):
-                    predictions[:, i, j] = self.binary_classifiers[i][j - (i + 1)].separating_function(X)
+                    predictions[:, i, j] = self.binary_classifiers[i][j - (i + 1)].predict(X)
                     predictions[:, j, i] = - predictions[:, i, j]
         return predictions
 
     def predict(self, X):
         preds = self.separating_function(X)
         if self.classifier_type == 'ova':
-            probas = np.exp(-(preds - np.min(preds, axis=0))) / np.sum(
-                np.exp(-(preds - np.min(preds, axis=0))), axis=0)
-            return np.argmax(preds, axis=0), probas
+            return np.argmax(preds, axis=0)
         else:
             preds_over_classes = np.sum(preds, axis=2)
-            probas = None
-            return np.argmax(preds_over_classes, axis=1), probas
+            return np.argmax(preds_over_classes, axis=1)
