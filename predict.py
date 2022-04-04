@@ -1,11 +1,10 @@
 import numpy as np
-import cupy
 import pandas as pd
 import argparse
 from load import Data
 from utils import get_classifier, get_feature_extractor, get_accuracy
-
-cupy.cuda.set_allocator(None)
+from sklearn import svm
+from copy import deepcopy
 
 
 def parser():
@@ -16,8 +15,8 @@ def parser():
     parser.add_argument('--sigma', type=float, default=1)
     parser.add_argument('--degree', type=int, default=5)
     parser.add_argument('--c', type=float, default=1)
-    parser.add_argument('--classifier_type', type=str, default='ova', choices=['ova', 'ovo'])
-    parser.add_argument('--feature_extractor', default='hog', choices=[None, 'hog'])
+    parser.add_argument('--classifier_type', type=str, default='ovo', choices=['ova', 'ovo'])
+    parser.add_argument('--feature_extractor', default='hog', choices=['None', 'hog'])
     parser.add_argument('--feature_extractor_cell_size', default=8)
     parser.add_argument('--feature_extractor_cells_per_block', default=3)
     parser.add_argument('--output_file', default='results/Yte_pred.csv')
@@ -25,7 +24,7 @@ def parser():
     return parser.parse_args()
 
 
-def predict(args, dev0=None):
+def predict(args):
 
     data = Data(repository=args.datapath)
     Xtr = data.Xtr
@@ -36,7 +35,7 @@ def predict(args, dev0=None):
     Xte_im = data.Xte_im
 
     # get the feature extractor
-    if args.feature_extractor is not None:
+    if args.feature_extractor != "None":
         train_feature_extractor = get_feature_extractor(args)
         train_features = train_feature_extractor._compute_features(Xtr_im)
         test_feature_extractor = get_feature_extractor(args)
@@ -45,26 +44,40 @@ def predict(args, dev0=None):
         train_features = Xtr
         test_features = Xte
         
-    train_features = cupy.array(train_features)
-    test_features = cupy.array(test_features)
-    Ytr = cupy.array(Ytr)
+    # split for test
+    val_features = deepcopy(train_features[4000:])
+    train_features = deepcopy(train_features[:4000])
+    Yval = deepcopy(Ytr[4000:])
+    Ytr = deepcopy(Ytr[:4000])
+
+    # SKLEARN
+    #clf = svm.SVC(kernel='rbf', gamma=1.0, C=1.0, decision_function_shape='ovo')
+    #clf.fit(train_features, Ytr.reshape(-1))
+    #clf.decision_function_shape = "ovr"
+    #Y_train_preds = clf.predict(train_features)
 
     # Get the classifier
-    classifier = get_classifier(args, dev0)
+    classifier = get_classifier(args)
 
     # Train the classifier
     classifier.fit(train_features, Ytr.reshape(-1))
     Y_train_preds, pred_probas = classifier.predict(train_features)
-    assert get_accuracy(Ytr.get().ravel(), Ytr.get().ravel(), verbose=False) == 100
-    get_accuracy(Y_train_preds.get(), Ytr.get().ravel(), verbose=True)
-    Ytrain = {'Prediction': Y_train_preds.get()}
+    assert get_accuracy(Ytr.ravel(), Ytr.ravel(), verbose=False) == 100
+    get_accuracy(Y_train_preds, Ytr.ravel(), verbose=True)
+    Ytrain = {'Prediction': Y_train_preds}
     dataframe = pd.DataFrame(Ytrain)
     dataframe.index += 1
     dataframe.to_csv(args.train_file, index_label='Id')
+    
+    # validation
+    Y_val_preds, _ = classifier.predict(val_features)
+    #Y_val_preds = clf.predict(val_features)
+    get_accuracy(Y_val_preds, Yval.ravel(), verbose=True)
 
     # make the predictions
     Yte, _ = classifier.predict(test_features)
-    Yte = {'Prediction': Yte.get()}
+    # Yte = clf.predict(test_features)
+    Yte = {'Prediction': Yte}
     dataframe = pd.DataFrame(Yte)
     dataframe.index += 1
     dataframe.to_csv(args.output_file, index_label='Id')
