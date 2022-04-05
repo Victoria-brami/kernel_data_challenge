@@ -17,8 +17,8 @@ def parser():
     parser.add_argument('--c', type=float, default=1)
     parser.add_argument('--classifier_type', type=str, default='ovo', choices=['ova', 'ovo'])
     parser.add_argument('--feature_extractor', default='hog', choices=['None', 'hog'])
-    parser.add_argument('--feature_extractor_cell_size', default=8)
-    parser.add_argument('--feature_extractor_cells_per_block', default=3)
+    parser.add_argument('--feature_extractor_cell_size', type=int, default=8)
+    parser.add_argument('--feature_extractor_cells_per_block', type=int, default=3)
     parser.add_argument('--output_file', default='results/Yte_pred.csv')
     parser.add_argument('--train_file', default='results/Ytrain_pred.csv')
     parser.add_argument('--val_split', type=int, default=0)
@@ -48,10 +48,10 @@ def predict(args):
         
     # Validation split
     if args.val_split == 1:
-        val_features = deepcopy(train_features[3000:])
-        train_features = deepcopy(train_features[1000:])
-        Yval = deepcopy(Ytr[:1000])
-        Ytr = deepcopy(Ytr[1000:])
+        val_features = deepcopy(train_features[4000:])
+        train_features = deepcopy(train_features[:4000])
+        Yval = deepcopy(Ytr[4000:])
+        Ytr = deepcopy(Ytr[:4000])
 
     # Get the classifier
     classifier = get_classifier(args)
