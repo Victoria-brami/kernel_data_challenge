@@ -11,7 +11,7 @@ def parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--modelname', default='svm')
     parser.add_argument('--datapath', type=str, default='data/')
-    parser.add_argument('--kernel', default='rbf')
+    parser.add_argument('--kernel', default='poly')
     parser.add_argument('--sigma', type=float, default=1)
     parser.add_argument('--degree', type=int, default=5)
     parser.add_argument('--c', type=float, default=1)

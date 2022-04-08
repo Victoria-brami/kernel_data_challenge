@@ -2,7 +2,7 @@ from src.predict import predict
 
 class args:
     def __init__(self):
-        self.kernel = 'rbf'
+        self.kernel = 'poly'
         self.sigma = 1
         self.degree = 5
         self.c = 1
